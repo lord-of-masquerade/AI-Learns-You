@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 import joblib
 
-df=pd.read_csv('DATA/study.csv')
+df = pd.read_csv("data/study_data.csv")
 
 X = df[['hours_studied', 'focus_level', 'distractions', 'sleep_hours']]
 y = df['productivity']
