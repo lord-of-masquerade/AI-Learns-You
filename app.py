@@ -4,17 +4,26 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 
-# Load model + columns
+# ---------------- LOAD MODEL ---------------- #
+
 model = joblib.load("models/model.pkl")
 columns = joblib.load("models/columns.pkl")
 
-# Load dataset
+# ---------------- LOAD DATA ---------------- #
+
 df = pd.read_csv("data/study_data.csv")
+
+# ---------------- SESSION MEMORY ---------------- #
+
+if "user_data" not in st.session_state:
+    st.session_state.user_data = []
+
+# ---------------- UI ---------------- #
 
 st.title("🧠 AI That Learns YOU")
 st.write("Adaptive Productivity Prediction System")
 
-# ---------------- INPUT SECTION ---------------- #
+# ---------------- INPUT ---------------- #
 
 hours = st.slider("Hours Studied", 0, 10)
 focus = st.slider("Focus Level", 1, 10)
@@ -30,23 +39,23 @@ if st.button("Predict"):
     # Create empty input with all columns
     input_df = pd.DataFrame([0]*len(columns), index=columns).T
 
-    # Fill numeric values
+    # Fill values
     input_df.at[0, "hours_studied"] = hours
     input_df.at[0, "focus_level"] = focus
     input_df.at[0, "distractions"] = distractions
     input_df.at[0, "sleep_hours"] = sleep
 
-    # Fill subject
     subject_col = f"subject_{subject}"
     if subject_col in input_df.columns:
         input_df.at[0, subject_col] = 1
 
-    # Predict (ONLY THIS)
+    # Predict
     prediction = model.predict(input_df)
+    pred_value = round(prediction[0], 2)
 
-    st.success(f"Predicted Productivity: {round(prediction[0],2)} / 10")
+    st.success(f"Predicted Productivity: {pred_value} / 10")
 
-    # ---------------- DYNAMIC DATA ---------------- #
+    # ---------------- STORE USER DATA ---------------- #
 
     new_row = {
         "hours_studied": hours,
@@ -54,20 +63,27 @@ if st.button("Predict"):
         "distractions": distractions,
         "sleep_hours": sleep,
         "subject": subject,
-        "productivity": prediction[0]
+        "productivity": pred_value
     }
 
-    df_temp = pd.concat([df, pd.DataFrame([new_row])])
+    st.session_state.user_data.append(new_row)
+
+    # Convert to DataFrame
+    user_df = pd.DataFrame(st.session_state.user_data)
+
+    # Optional: keep last 10 entries (smooth behavior)
+    user_df = user_df.tail(10)
 
     # ---------------- SPIDER CHART ---------------- #
 
-    st.subheader("📊 Subject Focus Analysis")
+    st.subheader("📊 Subject Focus Analysis (Dynamic)")
 
-    subject_focus = df_temp.groupby("subject")["focus_level"].mean()
+    subject_focus = user_df.groupby("subject")["focus_level"].mean()
 
     labels = list(subject_focus.index)
     values = list(subject_focus.values)
 
+    # Close the loop
     values += values[:1]
     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
@@ -88,7 +104,7 @@ if st.button("Predict"):
 
     st.subheader("📉 Weak Subject Analysis")
 
-    subject_perf = df_temp.groupby("subject")["productivity"].mean()
+    subject_perf = user_df.groupby("subject")["productivity"].mean()
 
     weak_subject = subject_perf.idxmin()
     weak_score = subject_perf.min()
