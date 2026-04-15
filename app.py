@@ -4,8 +4,9 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 
-# Load model
+# Load model + columns
 model = joblib.load("models/model.pkl")
+columns = joblib.load("models/columns.pkl")
 
 # Load dataset
 df = pd.read_csv("data/study_data.csv")
@@ -20,29 +21,29 @@ focus = st.slider("Focus Level", 1, 10)
 distractions = st.slider("Distractions", 0, 10)
 sleep = st.slider("Sleep Hours", 0, 10)
 
-subject = st.selectbox("Subject", ["DSA", "OOP", "Maths", "Physics", "History"])
+subject = st.selectbox("Subject", ["DSA","OOP","Maths","Physics","History"])
 
 # ---------------- PREDICTION ---------------- #
 
 if st.button("Predict"):
 
-    # Prepare input for model
-    input_data = {
-        "hours_studied": hours,
-        "focus_level": focus,
-        "distractions": distractions,
-        "sleep_hours": sleep,
-        "subject_DSA": 1 if subject == "DSA" else 0,
-        "subject_OOP": 1 if subject == "OOP" else 0,
-        "subject_Maths": 1 if subject == "Maths" else 0,
-        "subject_Physics": 1 if subject == "Physics" else 0,
-        "subject_History": 1 if subject == "History" else 0
-    }
+    # Create empty input with all columns
+    input_df = pd.DataFrame([0]*len(columns), index=columns).T
 
-    df_input = pd.DataFrame([input_data])
+    # Fill numeric values
+    input_df.at[0, "hours_studied"] = hours
+    input_df.at[0, "focus_level"] = focus
+    input_df.at[0, "distractions"] = distractions
+    input_df.at[0, "sleep_hours"] = sleep
 
-    # Predict
-    prediction = model.predict(df_input)
+    # Fill subject
+    subject_col = f"subject_{subject}"
+    if subject_col in input_df.columns:
+        input_df.at[0, subject_col] = 1
+
+    # Predict (ONLY THIS)
+    prediction = model.predict(input_df)
+
     st.success(f"Predicted Productivity: {round(prediction[0],2)} / 10")
 
     # ---------------- DYNAMIC DATA ---------------- #
