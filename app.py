@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
-
+from datetime import datetime
 
 # ---------------- LOAD MODEL ---------------- #
 
@@ -13,6 +13,13 @@ columns = joblib.load("models/columns.pkl")
 # ---------------- LOAD DATA ---------------- #
 
 df = pd.read_csv("data/study_data.csv")
+
+# ---------------- LOAD USER HISTORY ---------------- #
+
+try:
+    history_df = pd.read_csv("data/user_history.csv")
+except:
+    history_df = pd.DataFrame()
 
 # ---------------- SESSION MEMORY ---------------- #
 
@@ -37,10 +44,9 @@ subject = st.selectbox("Subject", ["DSA","OOP","Maths","Physics","History"])
 
 if st.button("Predict"):
 
-    # Create empty input with all columns
+    # Create input
     input_df = pd.DataFrame([0]*len(columns), index=columns).T
 
-    # Fill values
     input_df.at[0, "hours_studied"] = hours
     input_df.at[0, "focus_level"] = focus
     input_df.at[0, "distractions"] = distractions
@@ -56,7 +62,7 @@ if st.button("Predict"):
 
     st.success(f"Predicted Productivity: {pred_value} / 10")
 
-    # ---------------- STORE USER DATA ---------------- #
+    # ---------------- STORE DATA ---------------- #
 
     new_row = {
         "hours_studied": hours,
@@ -64,32 +70,43 @@ if st.button("Predict"):
         "distractions": distractions,
         "sleep_hours": sleep,
         "subject": subject,
-        "productivity": pred_value
+        "productivity": pred_value,
+        "date": datetime.now().date()
     }
 
     st.session_state.user_data.append(new_row)
 
-    # Convert to DataFrame
-    user_df = pd.DataFrame(st.session_state.user_data)
+    # Save to CSV
+    pd.DataFrame([new_row]).to_csv(
+        "data/user_history.csv",
+        mode='a',
+        header=not pd.io.common.file_exists("data/user_history.csv"),
+        index=False
+    )
 
-    # Optional: keep last 10 entries (smooth behavior)
+    # ---------------- DATA PREP ---------------- #
+
+    user_df = pd.DataFrame(st.session_state.user_data)
     user_df = user_df.tail(10)
+
+    if not history_df.empty:
+        full_df = pd.concat([history_df, user_df])
+    else:
+        full_df = user_df.copy()
 
     # ---------------- SPIDER CHART ---------------- #
 
-    st.subheader("📊 Subject Focus Analysis (Dynamic)")
+    st.subheader("📊 Subject Focus Analysis")
 
     subject_focus = user_df.groupby("subject")["focus_level"].mean()
 
     labels = list(subject_focus.index)
     values = list(subject_focus.values)
 
-    # Close the loop
     values += values[:1]
     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist()
     angles += angles[:1]
 
-    plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=True)
 
@@ -100,6 +117,35 @@ if st.button("Predict"):
     ax.set_xticklabels(labels)
 
     st.pyplot(fig)
+
+    # ---------------- WEEKLY TREND ---------------- #
+
+    st.subheader("📈 Weekly Productivity Trend")
+
+    if "date" in full_df.columns:
+        full_df["date"] = pd.to_datetime(full_df["date"])
+        weekly = full_df.groupby("date")["productivity"].mean()
+        st.line_chart(weekly)
+
+    # ---------------- DASHBOARD ---------------- #
+
+    st.subheader("📊 Dashboard Overview")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Avg Productivity", round(full_df["productivity"].mean(), 2))
+    col2.metric("Best Score", round(full_df["productivity"].max(), 2))
+    col3.metric("Total Sessions", len(full_df))
+
+    st.subheader("📊 Subject Performance")
+
+    subject_perf_full = full_df.groupby("subject")["productivity"].mean()
+    st.bar_chart(subject_perf_full)
+
+    st.subheader("🧠 Focus vs Productivity")
+
+    if "focus_level" in full_df.columns:
+        st.scatter_chart(full_df[["focus_level", "productivity"]])
 
     # ---------------- WEAK SUBJECT ---------------- #
 
