@@ -45,5 +45,6 @@ AI-Learns-You/
 
 ```bash
 pip install -r requirements.txt
+```
 
 https://ai-learns-you.streamlit.app/
