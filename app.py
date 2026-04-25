@@ -14,6 +14,13 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import json, re, os
+
+import os
+
+# Works locally (from environment variable) AND on Streamlit Cloud (from secrets)
+if hasattr(st, "secrets") and "ANTHROPIC_API_KEY" in st.secrets:
+    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+
 from datetime import datetime
 
 # Optional heavy deps — gracefully degrade if not installed
