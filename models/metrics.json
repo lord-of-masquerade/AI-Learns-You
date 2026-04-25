@@ -3,7 +3,8 @@
   "mae_test": 0.4567,
   "cv_r2_mean": 0.9547,
   "cv_r2_std": 0.0206,
-  "trained_at": "20260423_114259",
+  "trained_at": "20260426_014328",
+  "n_estimators": 200,
   "features": [
     "hours_studied",
     "focus_level",
