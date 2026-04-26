@@ -1,0 +1,13 @@
+{
+  "updated_at": "2026-04-26T16:55:42.107488",
+  "total_sessions": 30,
+  "best_time_bucket": "Afternoon",
+  "top_subject": "DSA",
+  "subject_productivity": {
+    "DSA": 9.167,
+    "History": 6.667,
+    "OOP": 6.167,
+    "Physics": 6.167,
+    "Maths": 5.0
+  }
+}
