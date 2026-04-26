@@ -6,11 +6,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-try:
-    import speech_recognition as sr
-except Exception:
-    sr = None
-
 from src.intelligence import (
     DEFAULT_SUBJECTS,
     add_time_columns,
@@ -18,16 +13,18 @@ from src.intelligence import (
     bootstrap_models_if_missing,
     build_complexity_classifier,
     build_full_training_data,
+    check_study_methods,
+    compute_spider_metrics,
     compute_consistency_score,
     detect_behavior_patterns,
     extract_pdf_text,
     forecast_with_recommendation,
+    generate_quiz_from_text,
     load_models,
     load_profile,
     make_productivity_input,
     make_recommendation_input,
     maybe_retrain_models,
-    parse_voice_command,
     safe_read_csv,
     update_profile,
 )
@@ -98,52 +95,22 @@ def render_focus_heatmap(full_df):
     st.pyplot(fig)
 
 
-def run_voice_transcription():
-    st.subheader("Voice Input")
-    st.caption("Say things like: I studied 3 hours with low focus in Maths.")
+def render_spider_chart(chart_data):
+    labels = chart_data["labels"]
+    values = chart_data["values"]
+    values = values + values[:1]
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    angles = angles + angles[:1]
 
-    if "voice_command_text" not in st.session_state:
-        st.session_state.voice_command_text = ""
-
-    audio_file = st.file_uploader(
-        "Upload voice clip (wav, aiff, flac)",
-        type=["wav", "aiff", "flac"],
-        key="voice_file",
-    )
-
-    if st.button("Transcribe Voice"):
-        if sr is None:
-            st.error("speech_recognition is not installed. Add it from requirements and restart.")
-        elif audio_file is None:
-            st.warning("Upload an audio file first.")
-        else:
-            recognizer = sr.Recognizer()
-            try:
-                with sr.AudioFile(audio_file) as source:
-                    audio = recognizer.record(source)
-                transcript = recognizer.recognize_google(audio)
-                st.session_state.voice_command_text = transcript
-                st.success("Transcription complete.")
-            except Exception as exc:
-                st.error(f"Transcription failed: {exc}")
-
-    st.text_area("Voice command text", key="voice_command_text", height=90)
-    if st.button("Apply Voice Fields"):
-        parsed = parse_voice_command(st.session_state.voice_command_text, subjects=DEFAULT_SUBJECTS)
-        if not parsed:
-            st.warning("Could not parse fields from the command.")
-            return
-        if "hours_studied" in parsed:
-            st.session_state.hours_studied = float(np.clip(parsed["hours_studied"], 0, 10))
-        if "focus_level" in parsed:
-            st.session_state.focus_level = int(np.clip(parsed["focus_level"], 1, 10))
-        if "distractions" in parsed:
-            st.session_state.distractions = int(np.clip(parsed["distractions"], 0, 10))
-        if "sleep_hours" in parsed:
-            st.session_state.sleep_hours = float(np.clip(parsed["sleep_hours"], 0, 10))
-        if "subject" in parsed:
-            st.session_state.subject = parsed["subject"]
-        st.success("Voice values applied to the input panel.")
+    fig = plt.figure(figsize=(6, 5))
+    ax = fig.add_subplot(111, polar=True)
+    ax.plot(angles, values, linewidth=2)
+    ax.fill(angles, values, alpha=0.25)
+    ax.set_ylim(0, 10)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
+    ax.set_title(chart_data["title"])
+    st.pyplot(fig)
 
 
 def run_pdf_analyzer():
@@ -153,12 +120,17 @@ def run_pdf_analyzer():
         st.session_state.pdf_multiplier = 1.0
     if "pdf_result" not in st.session_state:
         st.session_state.pdf_result = {}
+    if "pdf_text" not in st.session_state:
+        st.session_state.pdf_text = ""
+    if "pdf_quiz" not in st.session_state:
+        st.session_state.pdf_quiz = []
 
     if uploaded_pdf is not None and st.button("Analyze PDF"):
         text = extract_pdf_text(uploaded_pdf)
         if not text:
             st.error("No readable text found in PDF.")
             return
+        st.session_state.pdf_text = text
         classifier = get_complexity_classifier()
         result = analyze_pdf_complexity(text, classifier)
         st.session_state.pdf_multiplier = result["effort_multiplier"]
@@ -171,6 +143,27 @@ def run_pdf_analyzer():
         c2.metric("Difficulty", result["difficulty_label"])
         c3.metric("Effort Multiplier", result["effort_multiplier"])
         st.write("Keywords:", ", ".join(result.get("keywords", [])) or "None")
+
+    st.subheader("PDF to Quiz and Question Converter")
+    if st.session_state.pdf_text:
+        num_questions = st.slider("Number of quiz questions", 3, 15, 6, key="quiz_count")
+        if st.button("Generate Quiz from PDF"):
+            st.session_state.pdf_quiz = generate_quiz_from_text(
+                st.session_state.pdf_text,
+                num_questions=num_questions,
+            )
+
+        if st.session_state.pdf_quiz:
+            quiz_df = pd.DataFrame(st.session_state.pdf_quiz)
+            st.dataframe(quiz_df, use_container_width=True)
+            st.download_button(
+                "Download Questions CSV",
+                data=quiz_df.to_csv(index=False).encode("utf-8"),
+                file_name="pdf_quiz_questions.csv",
+                mime="text/csv",
+            )
+    else:
+        st.caption("Analyze a PDF first to enable quiz generation.")
 
 
 def main():
@@ -188,7 +181,6 @@ def main():
 
     profile = load_profile(PROFILE_PATH)
 
-    run_voice_transcription()
     run_pdf_analyzer()
 
     st.subheader("Session Input")
@@ -303,6 +295,34 @@ def main():
     st.write(insights["best_window"])
     st.write(insights["draining_subject"])
     st.write(insights["burnout_signal"])
+
+    st.subheader("Spider Chart - Overall")
+    overall_chart = compute_spider_metrics(full_df, subject=None)
+    render_spider_chart(overall_chart)
+
+    st.subheader("Spider Chart - Per Subject")
+    subject_options = sorted(full_df["subject"].dropna().astype(str).unique().tolist())
+    default_subject = st.session_state.get("subject", subject_options[0] if subject_options else DEFAULT_SUBJECTS[0])
+    subject_for_spider = st.selectbox(
+        "Select subject for radar",
+        subject_options if subject_options else DEFAULT_SUBJECTS,
+        index=(subject_options.index(default_subject) if subject_options and default_subject in subject_options else 0),
+        key="spider_subject",
+    )
+    subject_chart = compute_spider_metrics(full_df, subject=subject_for_spider)
+    render_spider_chart(subject_chart)
+
+    st.subheader("Study Method Checker")
+    method_report = check_study_methods(full_df, subject=subject_for_spider)
+    st.write(method_report["summary"])
+    method_lookup = {item["method"]: item for item in method_report["methods"]}
+    selected_method = st.selectbox("Check method fit", list(method_lookup.keys()), key="method_fit_select")
+    selected_info = method_lookup[selected_method]
+    st.metric("Method Fit Score", selected_info["score"])
+    st.write(selected_info["reason"])
+    st.write("Top recommendations right now:")
+    for item in method_report["methods"][:3]:
+        st.write(f"- {item['method']}: {item['score']}/100")
 
     st.subheader("Learns-You Memory")
     st.write(f"Remembered sessions: {profile['total_sessions']}")

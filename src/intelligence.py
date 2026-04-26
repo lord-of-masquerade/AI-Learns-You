@@ -258,39 +258,167 @@ def analyze_pdf_complexity(text, complexity_classifier):
     }
 
 
-def parse_voice_command(text, subjects=None):
-    subjects = subjects or DEFAULT_SUBJECTS
-    lowered = (text or "").lower()
-    result = {}
+def compute_spider_metrics(full_df, subject=None):
+    work = full_df.copy()
+    if subject:
+        subset = work[work["subject"] == subject]
+        if len(subset) > 0:
+            work = subset
 
-    hours_match = re.search(r"(\d+(?:\.\d+)?)\s*hour", lowered)
-    if hours_match:
-        result["hours_studied"] = float(hours_match.group(1))
+    if len(work) == 0:
+        return {
+            "title": f"{subject or 'Overall'} Study Profile",
+            "labels": ["Hours", "Focus", "Sleep", "Productivity", "Distraction Control"],
+            "values": [0, 0, 0, 0, 0],
+        }
 
-    focus_match = re.search(r"focus(?:\s*level)?(?:\s*is|\s*at)?\s*(\d+)", lowered)
-    if focus_match:
-        result["focus_level"] = int(focus_match.group(1))
-    elif "low focus" in lowered:
-        result["focus_level"] = 3
-    elif "medium focus" in lowered:
-        result["focus_level"] = 6
-    elif "high focus" in lowered:
-        result["focus_level"] = 8
+    hours_score = float(np.clip(work["hours_studied"].mean(), 0, 10))
+    focus_score = float(np.clip(work["focus_level"].mean(), 0, 10))
+    sleep_score = float(np.clip(work["sleep_hours"].mean(), 0, 10))
+    productivity_score = float(np.clip(work["productivity"].mean(), 0, 10))
+    distraction_control = float(np.clip(10 - work["distractions"].mean(), 0, 10))
 
-    distraction_match = re.search(r"distraction(?:s)?(?:\s*is|\s*at)?\s*(\d+)", lowered)
-    if distraction_match:
-        result["distractions"] = int(distraction_match.group(1))
+    return {
+        "title": f"{subject or 'Overall'} Study Profile",
+        "labels": ["Hours", "Focus", "Sleep", "Productivity", "Distraction Control"],
+        "values": [
+            round(hours_score, 2),
+            round(focus_score, 2),
+            round(sleep_score, 2),
+            round(productivity_score, 2),
+            round(distraction_control, 2),
+        ],
+    }
 
-    sleep_match = re.search(r"(\d+(?:\.\d+)?)\s*hour(?:s)?\s*sleep", lowered)
-    if sleep_match:
-        result["sleep_hours"] = float(sleep_match.group(1))
 
-    for subject in subjects:
-        if subject.lower() in lowered:
-            result["subject"] = subject
+def check_study_methods(full_df, subject=None):
+    work = full_df.copy()
+    if subject:
+        subject_df = work[work["subject"] == subject]
+        if len(subject_df) > 0:
+            work = subject_df
+
+    if len(work) == 0:
+        return {"methods": [], "summary": "No data to evaluate study methods yet."}
+
+    avg_focus = float(work["focus_level"].mean())
+    avg_distractions = float(work["distractions"].mean())
+    avg_hours = float(work["hours_studied"].mean())
+    avg_prod = float(work["productivity"].mean())
+    consistency = compute_consistency_score(work) / 100.0
+
+    active_recall = np.clip(50 + (7 - avg_prod) * 8 + (avg_focus - 5) * 3, 0, 100)
+    spaced_repetition = np.clip(45 + (1 - consistency) * 35 + max(0, avg_hours - 4) * 5, 0, 100)
+    pomodoro = np.clip(35 + avg_distractions * 6 + max(0, 6 - avg_focus) * 8, 0, 100)
+    practice_testing = np.clip(40 + (7 - avg_prod) * 9 + max(0, 5 - avg_hours) * 4, 0, 100)
+    feynman = np.clip(35 + max(0, 7 - avg_prod) * 7 + max(0, 6 - avg_focus) * 4, 0, 100)
+
+    methods = [
+        {
+            "method": "Active Recall",
+            "score": round(float(active_recall), 1),
+            "reason": "Improves long-term retention and closes concept gaps quickly.",
+        },
+        {
+            "method": "Spaced Repetition",
+            "score": round(float(spaced_repetition), 1),
+            "reason": "Best when consistency fluctuates and content load is large.",
+        },
+        {
+            "method": "Pomodoro Blocks",
+            "score": round(float(pomodoro), 1),
+            "reason": "Useful when distractions are high or focus drops in long sessions.",
+        },
+        {
+            "method": "Practice Testing",
+            "score": round(float(practice_testing), 1),
+            "reason": "Converts passive study into measurable performance gains.",
+        },
+        {
+            "method": "Feynman Technique",
+            "score": round(float(feynman), 1),
+            "reason": "Great for hard topics where conceptual clarity is missing.",
+        },
+    ]
+    methods = sorted(methods, key=lambda item: item["score"], reverse=True)
+    summary = f"Top fit right now: {methods[0]['method']} ({methods[0]['score']}/100)."
+    return {"methods": methods, "summary": summary}
+
+
+_QUIZ_STOPWORDS = {
+    "the",
+    "and",
+    "for",
+    "that",
+    "with",
+    "from",
+    "this",
+    "have",
+    "your",
+    "into",
+    "using",
+    "between",
+    "their",
+    "which",
+    "where",
+    "when",
+    "while",
+    "also",
+    "such",
+    "than",
+    "there",
+}
+
+
+def _split_sentences(text):
+    cleaned = _clean_text(text)
+    chunks = re.split(r"(?<=[.!?])\s+", cleaned)
+    sentences = []
+    for sentence in chunks:
+        words = sentence.split()
+        if 8 <= len(words) <= 40:
+            sentences.append(sentence.strip())
+    return sentences
+
+
+def _pick_keyword(sentence):
+    candidates = re.findall(r"[A-Za-z]{5,}", sentence)
+    candidates = [word for word in candidates if word.lower() not in _QUIZ_STOPWORDS]
+    if not candidates:
+        return ""
+    candidates = sorted(candidates, key=len, reverse=True)
+    return candidates[0]
+
+
+def generate_quiz_from_text(text, num_questions=6):
+    sentences = _split_sentences(text)
+    if not sentences:
+        return []
+
+    questions = []
+    for idx, sentence in enumerate(sentences):
+        if len(questions) >= num_questions:
             break
-
-    return result
+        keyword = _pick_keyword(sentence)
+        if keyword and idx % 2 == 0:
+            blanked = re.sub(rf"\b{re.escape(keyword)}\b", "_____", sentence, count=1)
+            questions.append(
+                {
+                    "type": "Fill in the blank",
+                    "question": blanked,
+                    "answer": keyword,
+                }
+            )
+        else:
+            prompt_seed = " ".join(sentence.split()[:10])
+            questions.append(
+                {
+                    "type": "Short answer",
+                    "question": f"Explain this statement: {prompt_seed}...",
+                    "answer": sentence,
+                }
+            )
+    return questions
 
 
 def compute_time_bucket(hour_value):
