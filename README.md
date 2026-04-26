@@ -9,10 +9,11 @@ Adaptive study intelligence app built with Streamlit and scikit-learn.
 3. PDF analyzer for topic complexity and effort multiplier.
 4. PDF-to-quiz and question converter.
 5. Spider charts for overall and per-subject performance profile.
-6. Study method checker with method-fit scoring.
-7. Intelligence dashboard with trend comparison, heatmap, and consistency score.
-8. Behavior pattern detection for best windows, draining subjects, and burnout signals.
-9. Personal memory profile that adapts recommendations over time.
+6. Technique checker with method-fit scoring.
+7. RL planner with persistent Q-table memory and adaptive slot planning.
+8. Intelligence dashboard with trend comparison, heatmap, and consistency score.
+9. Behavior pattern detection for best windows, draining subjects, and burnout signals.
+10. Personal memory profile that adapts recommendations over time.
 
 ## Run
 
@@ -25,7 +26,7 @@ streamlit run app.py
 ## Structure
 
 - `app.py` - main Streamlit app.
-- `src/intelligence.py` - training, analytics, PDF analysis, quiz generation, and profile helpers.
+- `src/intelligence.py` - training, analytics, PDF analysis/export, quiz generation, RL planner, and profile helpers.
 - `src/train.py` - trains and saves productivity + recommendation models.
 - `data/` - source data + user history/profile.
 - `models/` - persisted model artifacts.

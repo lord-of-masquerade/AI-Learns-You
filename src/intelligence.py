@@ -1,11 +1,14 @@
 import json
 import re
+from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
 from PyPDF2 import PdfReader
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -419,6 +422,182 @@ def generate_quiz_from_text(text, num_questions=6):
                 }
             )
     return questions
+
+
+def quiz_to_pdf_bytes(questions, title="PDF Quiz Export"):
+    if not questions:
+        return b""
+
+    buffer = BytesIO()
+    questions_per_page = 5
+
+    with PdfPages(buffer) as pdf:
+        total_pages = int(np.ceil(len(questions) / questions_per_page))
+        for page_idx in range(total_pages):
+            start = page_idx * questions_per_page
+            end = min(len(questions), start + questions_per_page)
+            page_questions = questions[start:end]
+
+            fig, ax = plt.subplots(figsize=(8.27, 11.69))
+            ax.axis("off")
+
+            y = 0.96
+            ax.text(0.02, y, title, fontsize=16, fontweight="bold", va="top")
+            y -= 0.04
+            ax.text(0.02, y, f"Page {page_idx + 1} of {total_pages}", fontsize=9, color="#444444", va="top")
+            y -= 0.04
+
+            for local_idx, q in enumerate(page_questions, start=start + 1):
+                q_type = q.get("type", "Question")
+                question = q.get("question", "").strip()
+                answer = q.get("answer", "").strip()
+                block = (
+                    f"{local_idx}. [{q_type}] {question}\n"
+                    f"Answer: {answer}"
+                )
+                ax.text(0.02, y, block, fontsize=10, va="top", wrap=True)
+                y -= 0.17
+
+            pdf.savefig(fig, bbox_inches="tight")
+            plt.close(fig)
+
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+RL_ACTIONS = [
+    {"name": "Deep Focus Block", "technique": "Active Recall", "slot_hours": 1.5, "intensity": 5},
+    {"name": "Pomodoro Sprint", "technique": "Pomodoro", "slot_hours": 1.0, "intensity": 3},
+    {"name": "Problem Solving Drill", "technique": "Practice Testing", "slot_hours": 1.5, "intensity": 4},
+    {"name": "Concept Revision Loop", "technique": "Spaced Repetition", "slot_hours": 1.0, "intensity": 2},
+    {"name": "Teach Back Session", "technique": "Feynman Technique", "slot_hours": 1.25, "intensity": 4},
+]
+
+
+def _bucket(value, step):
+    return int(np.clip(np.floor(float(value) / step), 0, 9))
+
+
+def build_rl_state(subject, focus_level, past_productivity, distractions):
+    return f"{subject}|f{_bucket(focus_level, 2)}|p{_bucket(past_productivity, 2)}|d{_bucket(distractions, 2)}"
+
+
+def load_rl_memory(path):
+    p = Path(path)
+    if not p.exists():
+        return {"states": {}, "last_update": ""}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {"states": {}, "last_update": ""}
+
+
+def save_rl_memory(path, memory):
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    memory["last_update"] = datetime.now().isoformat()
+    p.write_text(json.dumps(memory, indent=2), encoding="utf-8")
+
+
+def _ensure_rl_state(memory, state):
+    if "states" not in memory:
+        memory["states"] = {}
+    if state not in memory["states"]:
+        memory["states"][state] = {action["name"]: 0.0 for action in RL_ACTIONS}
+
+
+def choose_rl_action(memory, state, epsilon=0.12):
+    _ensure_rl_state(memory, state)
+    q_values = memory["states"][state]
+    if np.random.random() < epsilon:
+        picked = np.random.choice(list(q_values.keys()))
+    else:
+        picked = max(q_values.items(), key=lambda item: item[1])[0]
+    return picked, q_values
+
+
+def update_rl_q(memory, state, action_name, reward, alpha=0.25, gamma=0.8):
+    _ensure_rl_state(memory, state)
+    q_values = memory["states"][state]
+    old_value = float(q_values.get(action_name, 0.0))
+    max_future = max(q_values.values()) if q_values else 0.0
+    updated = old_value + alpha * (float(reward) + gamma * max_future - old_value)
+    q_values[action_name] = round(float(updated), 4)
+    return q_values[action_name]
+
+
+def _subject_need_scores(full_df, priority_subject=None):
+    if len(full_df) == 0:
+        base = {subj: 5.0 for subj in DEFAULT_SUBJECTS}
+    else:
+        subj_perf = full_df.groupby("subject")["productivity"].mean().to_dict()
+        base = {}
+        for subj in DEFAULT_SUBJECTS:
+            score = float(subj_perf.get(subj, np.mean(list(subj_perf.values())) if subj_perf else 6.0))
+            base[subj] = float(np.clip(10 - score, 0.5, 10))
+    if priority_subject and priority_subject in base:
+        base[priority_subject] = base[priority_subject] * 1.35
+    return base
+
+
+def _action_by_name(name):
+    for action in RL_ACTIONS:
+        if action["name"] == name:
+            return action
+    return RL_ACTIONS[0]
+
+
+def build_rl_study_plan(
+    full_df,
+    memory,
+    hours_per_day=4.0,
+    days_to_exam=5,
+    priority_subject="Auto",
+):
+    days = int(np.clip(days_to_exam, 1, 7))
+    hpd = float(np.clip(hours_per_day, 1, 10))
+    slots_per_day = max(1, int(round(hpd / 1.25)))
+    needs = _subject_need_scores(full_df, None if priority_subject == "Auto" else priority_subject)
+
+    plan_rows = []
+    for day in range(1, days + 1):
+        day_budget = hpd
+        for slot in range(1, slots_per_day + 1):
+            subjects = list(needs.keys())
+            weights = np.array([needs[subj] for subj in subjects], dtype=float)
+            weights = weights / weights.sum()
+            subject = np.random.choice(subjects, p=weights)
+
+            focus_est = int(np.clip(6 + np.random.randint(-2, 3), 1, 10))
+            subject_hist = full_df[full_df["subject"] == subject]["productivity"] if len(full_df) else pd.Series(dtype=float)
+            past_prod = float(subject_hist.tail(5).mean()) if len(subject_hist) else 6.0
+            dist_est = int(np.clip(3 + np.random.randint(-1, 3), 0, 10))
+
+            state = build_rl_state(subject, focus_est, past_prod, dist_est)
+            action_name, q_values = choose_rl_action(memory, state)
+            action = _action_by_name(action_name)
+
+            allocated = min(action["slot_hours"], max(0.75, day_budget / max(1, slots_per_day - slot + 1)))
+            reward_proxy = np.clip((past_prod / 10.0) + (focus_est / 20.0) - (dist_est / 30.0), 0, 1.5)
+            updated_q = update_rl_q(memory, state, action_name, reward_proxy)
+
+            predicted = float(np.clip((past_prod * 0.55) + (focus_est * 0.35) - (dist_est * 0.2) + 1.5, 1, 10))
+            plan_rows.append(
+                {
+                    "Day": day,
+                    "Slot": slot,
+                    "Subject": subject,
+                    "Action": action_name,
+                    "Technique": action["technique"],
+                    "Hours": round(float(allocated), 2),
+                    "Intensity": int(action["intensity"]),
+                    "Predicted Productivity": round(predicted, 2),
+                    "Q Value": round(float(updated_q), 3),
+                }
+            )
+            day_budget = max(0.0, day_budget - allocated)
+            needs[subject] = max(0.4, needs[subject] * 0.8)
+    return pd.DataFrame(plan_rows)
 
 
 def compute_time_bucket(hour_value):
