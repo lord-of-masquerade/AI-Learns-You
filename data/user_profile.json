@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-04-26T17:33:40.478760",
+  "updated_at": "2026-04-26T18:58:27.749004",
   "total_sessions": 30,
-  "best_time_bucket": "Morning",
+  "best_time_bucket": "Evening",
   "top_subject": "DSA",
   "subject_productivity": {
     "DSA": 9.167,

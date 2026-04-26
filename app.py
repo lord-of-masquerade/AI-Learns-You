@@ -409,6 +409,38 @@ def compute_technique_ratings(selected_techniques):
     return {m: round(accum[m] / count, 1) for m in metrics}
 
 
+def get_dynamic_chart_df(history_df, fallback_df):
+    required = ["hours_studied", "focus_level", "distractions", "sleep_hours", "subject", "productivity"]
+    if history_df is not None and len(history_df) > 0 and all(col in history_df.columns for col in required):
+        clean = history_df.dropna(subset=required)
+        if len(clean) > 0:
+            return clean.copy()
+    return fallback_df.copy()
+
+
+def build_live_spider_metrics(hours, focus, distractions, sleep, subject, models):
+    live_input = make_productivity_input(
+        hours=hours,
+        focus=focus,
+        distractions=distractions,
+        sleep=sleep,
+        subject=subject,
+        columns=models["productivity_columns"],
+    )
+    live_pred = float(models["productivity_model"].predict(live_input)[0])
+    return {
+        "title": f"{subject} Live Session Profile",
+        "labels": ["Hours", "Focus", "Sleep", "Productivity", "Distraction Control"],
+        "values": [
+            round(float(hours), 2),
+            round(float(focus), 2),
+            round(float(sleep), 2),
+            round(float(np.clip(live_pred, 0, 10)), 2),
+            round(float(np.clip(10 - distractions, 0, 10)), 2),
+        ],
+    }
+
+
 def render_predict_page(base_df, full_df, models, profile, rl_memory):
     render_page_head("Study Intelligence", "Set session parameters and run adaptive prediction.")
 
@@ -430,15 +462,15 @@ def render_predict_page(base_df, full_df, models, profile, rl_memory):
 
     with right:
         st.markdown("<span class='label'>Prediction Output</span>", unsafe_allow_html=True)
-        spider_subject_options = sorted(set(DEFAULT_SUBJECTS).union(set(full_df["subject"].dropna().astype(str).tolist())))
-        default_spider_subject = st.session_state.get("subject", spider_subject_options[0] if spider_subject_options else DEFAULT_SUBJECTS[0])
-        if default_spider_subject not in spider_subject_options:
-            default_spider_subject = spider_subject_options[0]
-        selected_spider_subject = st.selectbox(
-            "Spider Subject",
-            spider_subject_options,
-            index=spider_subject_options.index(default_spider_subject),
-            key="predict_spider_subject",
+        selected_spider_subject = subject
+        st.caption(f"Spider subject (live): {selected_spider_subject}")
+        live_spider = build_live_spider_metrics(
+            hours=hours,
+            focus=focus,
+            distractions=distractions,
+            sleep=sleep,
+            subject=selected_spider_subject,
+            models=models,
         )
         if "last_prediction" in st.session_state:
             pred_data = st.session_state.last_prediction
@@ -452,7 +484,7 @@ def render_predict_page(base_df, full_df, models, profile, rl_memory):
                 "<p class='note'>Run prediction to view personalized recommendation and RL action.</p>",
                 unsafe_allow_html=True,
             )
-        render_spider_chart(compute_spider_metrics(full_df, subject=selected_spider_subject), color="#00d9c0")
+        render_spider_chart(live_spider, color="#00d9c0")
 
     if not predict_clicked:
         return
@@ -511,6 +543,7 @@ def render_predict_page(base_df, full_df, models, profile, rl_memory):
 
     refreshed_history = safe_read_csv(HISTORY_PATH)
     refreshed_df = build_full_training_data(base_df, refreshed_history)
+    refreshed_chart_df = get_dynamic_chart_df(refreshed_history, refreshed_df)
     retrained = maybe_retrain_models(refreshed_df, MODEL_DIR, min_rows=20)
     if retrained:
         st.session_state.models = load_models(MODEL_DIR)
@@ -522,7 +555,7 @@ def render_predict_page(base_df, full_df, models, profile, rl_memory):
         "rec": recommended_hours,
         "forecast": forecast,
         "rl_tip": f"RL Action: {rl_action_name}. Recommendation includes profile and PDF complexity.",
-        "spider": compute_spider_metrics(refreshed_df, subject=subject),
+        "spider": compute_spider_metrics(refreshed_chart_df, subject=subject),
     }
     st.rerun()
 
@@ -735,6 +768,7 @@ def render_rl_planner_page(full_df, rl_memory):
 
 def render_focus_session_page():
     render_page_head("Focus Session", "Run distraction-free work blocks with a visual timer.")
+    theme = THEMES.get(st.session_state.get("theme_name", "Neon Grid"), THEMES["Neon Grid"])
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -750,18 +784,18 @@ def render_focus_session_page():
     )
 
     timer_html = f"""
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;">
-      <div style="font-family:Syne,sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;">
+    <div style="background:{theme['card']};border:1px solid {theme['border']};border-radius:12px;padding:1rem 1.1rem;color:{theme['text']};">
+      <div style="font-family:Syne,sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:{theme['muted']};margin-bottom:.45rem;">
         Focus Timer
       </div>
-      <div id="phase" style="color:var(--teal);font-size:.9rem;margin-bottom:.3rem;">Ready</div>
-      <div id="clock" style="font-family:'JetBrains Mono',monospace;font-size:2.2rem;color:var(--text);margin-bottom:.6rem;">{focus_minutes:02d}:00</div>
-      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
-        <button id="startBtn" style="background:linear-gradient(135deg,var(--accent),#4338ca);color:white;border:none;border-radius:8px;padding:.45rem .8rem;cursor:pointer;">Start</button>
-        <button id="pauseBtn" style="background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .8rem;cursor:pointer;">Pause</button>
-        <button id="resetBtn" style="background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .8rem;cursor:pointer;">Reset</button>
+      <div id="phase" style="color:{theme['teal']};font-size:.95rem;margin-bottom:.35rem;font-weight:600;">Ready</div>
+      <div id="clock" style="font-family:'JetBrains Mono',monospace;font-size:2.4rem;color:{theme['text']};margin-bottom:.8rem;">{focus_minutes:02d}:00</div>
+      <div style="display:flex;gap:.55rem;flex-wrap:wrap;">
+        <button id="startBtn" style="background:linear-gradient(135deg,{theme['accent']},#4338ca);color:#ffffff;border:none;border-radius:9px;padding:.55rem .95rem;cursor:pointer;font-weight:700;min-width:82px;">Start</button>
+        <button id="pauseBtn" style="background:{theme['panel']};color:{theme['text']};border:1px solid {theme['border']};border-radius:9px;padding:.55rem .95rem;cursor:pointer;font-weight:700;min-width:82px;">Pause</button>
+        <button id="resetBtn" style="background:{theme['panel']};color:{theme['text']};border:1px solid {theme['border']};border-radius:9px;padding:.55rem .95rem;cursor:pointer;font-weight:700;min-width:82px;">Reset</button>
       </div>
-      <div id="status" style="margin-top:.65rem;color:var(--soft);font-size:.8rem;">Cycle 1 / {cycles}</div>
+      <div id="status" style="margin-top:.7rem;color:{theme['soft']};font-size:.85rem;">Cycle 1 / {cycles}</div>
     </div>
     <script>
     (function() {{
@@ -788,7 +822,7 @@ def render_focus_session_page():
 
       const repaint = () => {{
         phase.textContent = mode === "focus" ? "Focus Block" : "Short Break";
-        phase.style.color = mode === "focus" ? "var(--teal)" : "var(--amber)";
+        phase.style.color = mode === "focus" ? "{theme['teal']}" : "{theme['amber']}";
         clock.textContent = format(remaining);
         status.textContent = `Cycle ${{cycle}} / ${{maxCycles}}`;
       }};
@@ -807,7 +841,7 @@ def render_focus_session_page():
             clearInterval(timer);
             timer = null;
             phase.textContent = "Completed";
-            phase.style.color = "var(--green)";
+            phase.style.color = "{theme['green']}";
             return;
           }}
           cycle += 1;
@@ -843,12 +877,13 @@ def render_focus_session_page():
     components.html(timer_html, height=300)
 
 
-def render_dashboard_page(base_df, full_df):
+def render_dashboard_page(base_df, history_df, full_df):
     if len(full_df) == 0:
         st.warning("No data found yet. Add at least one session.")
         return
 
     profile = update_profile(PROFILE_PATH, full_df)
+    chart_df = get_dynamic_chart_df(history_df, full_df)
     render_page_head("Dashboard", "Trends, behavior signals, and per-subject diagnostics.")
 
     m1, m2, m3 = st.columns(3)
@@ -879,16 +914,16 @@ def render_dashboard_page(base_df, full_df):
     left, right = st.columns(2)
     with left:
         st.subheader("Spider Chart - Overall")
-        render_spider_chart(compute_spider_metrics(full_df, subject=None), color="#5b5ef4")
+        render_spider_chart(compute_spider_metrics(chart_df, subject=None), color="#5b5ef4")
     with right:
         st.subheader("Spider Chart - Per Subject")
-        subject_options = sorted(set(DEFAULT_SUBJECTS).union(set(full_df["subject"].dropna().astype(str).unique().tolist())))
+        subject_options = sorted(set(DEFAULT_SUBJECTS).union(set(chart_df["subject"].dropna().astype(str).unique().tolist())))
         selected_subject = st.selectbox(
             "Select subject",
             subject_options if subject_options else DEFAULT_SUBJECTS,
             key="dashboard_spider_subject",
         )
-        render_spider_chart(compute_spider_metrics(full_df, subject=selected_subject), color="#00d9c0")
+        render_spider_chart(compute_spider_metrics(chart_df, subject=selected_subject), color="#00d9c0")
 
     st.subheader("Learns-You Memory")
     st.write(f"Remembered sessions: {profile['total_sessions']}")
@@ -954,7 +989,7 @@ def main():
     elif page == "Focus Session":
         render_focus_session_page()
     elif page == "Dashboard":
-        render_dashboard_page(base_df, full_df)
+        render_dashboard_page(base_df, history_df, full_df)
 
 
 if __name__ == "__main__":
