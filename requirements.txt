@@ -4,3 +4,5 @@ scikit-learn
 streamlit
 matplotlib
 joblib
+PyPDF2
+SpeechRecognition

@@ -1,36 +1,59 @@
-print("Script started...")
+print("Training started...")
+
+from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+try:
+    from src.intelligence import (
+        build_full_training_data,
+        build_recommendation_training_data,
+        train_productivity_model,
+        train_recommendation_model,
+    )
+except ImportError:
+    from intelligence import (
+        build_full_training_data,
+        build_recommendation_training_data,
+        train_productivity_model,
+        train_recommendation_model,
+    )
+
+
+base_df = pd.read_csv("data/study_data.csv")
+history_path = Path("data/user_history.csv")
+history_df = pd.read_csv(history_path) if history_path.exists() else pd.DataFrame()
+
+full_df = build_full_training_data(base_df, history_df)
+
+productivity_model, productivity_columns = train_productivity_model(full_df)
+recommendation_model, recommendation_columns = train_recommendation_model(full_df)
+
+# quick in-sample score for visibility
+train_df = full_df[["hours_studied", "focus_level", "distractions", "sleep_hours", "subject", "productivity"]].copy()
+train_df = pd.get_dummies(train_df, columns=["subject"])
+x = train_df.drop(columns=["productivity"])
+y = train_df["productivity"]
+for col in productivity_columns:
+    if col not in x.columns:
+        x[col] = 0
+x = x[productivity_columns]
+score = productivity_model.score(x, y)
+
+Path("models").mkdir(parents=True, exist_ok=True)
+
 import joblib
-import os
 
-# Load dataset
-df = pd.read_csv("data/study_data.csv")
+joblib.dump(productivity_model, "models/model.pkl")
+joblib.dump(productivity_columns, "models/columns.pkl")
+joblib.dump(recommendation_model, "models/recommendation_model.pkl")
+joblib.dump(recommendation_columns, "models/recommendation_columns.pkl")
 
-# One-hot encoding
-df = pd.get_dummies(df, columns=['subject'])
+print(f"Productivity model score: {score:.3f}")
 
-# Split features and target
-X = df.drop('productivity', axis=1)
-y = df['productivity']
-
-# Create models folder FIRST
-os.makedirs("models", exist_ok=True)
-
-# Save columns (VERY IMPORTANT)
-joblib.dump(X.columns.tolist(), "models/columns.pkl")
-
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-# Train model
-model = RandomForestRegressor()
-model.fit(X_train, y_train)
-
-# Save model
-joblib.dump(model, "models/model.pkl")
-
-# Accuracy
-print("Accuracy:", model.score(X_test, y_test))
+rec_x, rec_y = build_recommendation_training_data(full_df)
+for col in recommendation_columns:
+    if col not in rec_x.columns:
+        rec_x[col] = 0
+rec_x = rec_x[recommendation_columns]
+rec_score = recommendation_model.score(rec_x, rec_y)
+print(f"Recommendation model score: {rec_score:.3f}")
