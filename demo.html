@@ -39,6 +39,13 @@ hr.div{border:none;border-top:1px solid var(--border)}
 .nav-tab .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:auto;display:none;flex-shrink:0}
 .nav-tab.active .dot{display:block}
 
+/* sidebar file structure */
+.fs-block{margin-top:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.8rem}
+.fs-block .fs-title{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+.fs-line{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--soft);line-height:1.8;white-space:pre}
+.fs-line.folder{color:var(--teal)}
+.fs-line.new-file{color:var(--amber)}
+
 /* ── MAIN ── */
 main{padding:1.8rem 2rem;display:flex;flex-direction:column;gap:1.4rem;overflow-y:auto;max-height:100vh}
 .page-head{border-bottom:1px solid var(--border);padding-bottom:.9rem}
@@ -49,32 +56,39 @@ main{padding:1.8rem 2rem;display:flex;flex-direction:column;gap:1.4rem;overflow-
 .tab-panel.active{display:flex}
 @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── SLIDERS PANEL ── */
-.predict-layout{display:grid;grid-template-columns:340px 1fr;gap:1.4rem;align-items:start}
-.inputs-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.6rem}
-.inputs-panel h3{font-family:'Syne',sans-serif;font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem}
+/* ── BIG SLIDERS PANEL ── */
+.predict-layout{display:grid;grid-template-columns:380px 1fr;gap:1.4rem;align-items:start}
+.inputs-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.6rem}
+.inputs-panel h3{font-family:'Syne',sans-serif;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:1.4rem}
 
-/* Each slider row: emoji+label on left, number on right */
-.bsg{margin-bottom:1.35rem}
-.bsg-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem}
-.bsg-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:.45rem}
-.bsg-num{font-family:'JetBrains Mono',monospace;font-size:.95rem;color:var(--text);min-width:18px;text-align:right}
+.big-slider-group{margin-bottom:1.4rem}
+.bsg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.bsg-label{font-size:.82rem;color:var(--soft);display:flex;align-items:center;gap:.5rem}
+.bsg-val{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:500;color:var(--text);background:rgba(91,94,244,.1);border:1px solid rgba(91,94,244,.25);border-radius:6px;padding:.1rem .55rem;min-width:44px;text-align:center;transition:color .2s}
+.bsg-range{width:100%;margin:.2rem 0}
+.bsg-ticks{display:flex;justify-content:space-between;padding:0 2px;margin-top:.25rem}
+.bsg-tick{font-size:.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
 
-/* Slim range input matching screenshot */
-input[type=range].slim{
-  -webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;
-  background:linear-gradient(to right,var(--accent) var(--pct,40%),var(--border) var(--pct,40%))}
-input[type=range].slim::-webkit-slider-thumb{
-  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+/* Custom slider - BIG version */
+input[type=range].big-range{
+  -webkit-appearance:none;width:100%;height:6px;
+  border-radius:3px;outline:none;cursor:pointer;
+  background:linear-gradient(to right,var(--accent) var(--pct,40%),var(--border) var(--pct,40%));
+  transition:background .1s}
+input[type=range].big-range::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
   background:var(--accent);cursor:pointer;
-  box-shadow:0 0 0 3px rgba(91,94,244,.2)}
-input[type=range].slim::-webkit-slider-thumb:active{box-shadow:0 0 0 5px rgba(91,94,244,.28)}
-input[type=range].slim::-moz-range-thumb{
-  width:14px;height:14px;border-radius:50%;background:var(--accent);
-  border:none;cursor:pointer;box-shadow:0 0 0 3px rgba(91,94,244,.2)}
+  box-shadow:0 0 0 3px rgba(91,94,244,.2),0 0 16px rgba(91,94,244,.5);
+  transition:box-shadow .15s,transform .15s;border:2px solid rgba(255,255,255,.3)}
+input[type=range].big-range::-webkit-slider-thumb:hover{
+  box-shadow:0 0 0 5px rgba(91,94,244,.25),0 0 24px rgba(91,94,244,.65);
+  transform:scale(1.12)}
+input[type=range].big-range::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid rgba(255,255,255,.3);
+  cursor:pointer;box-shadow:0 0 16px rgba(91,94,244,.5)}
 
-.subject-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.38rem;margin-top:.5rem}
-.subj-btn{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:.42rem .3rem;text-align:center;cursor:pointer;transition:all .18s;font-size:.7rem;color:var(--muted)}
+.subject-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;margin-top:.6rem}
+.subj-btn{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:.45rem .3rem;text-align:center;cursor:pointer;transition:all .18s;font-size:.72rem;color:var(--muted)}
 .subj-btn:hover{border-color:rgba(91,94,244,.4);color:var(--soft)}
 .subj-btn.active{background:rgba(91,94,244,.12);border-color:var(--accent);color:var(--text)}
 
@@ -226,6 +240,25 @@ textarea::placeholder{color:var(--muted)}
     <button class="nav-tab" data-tab="technique"><span class="icon">🔬</span>Technique Checker<div class="dot"></div></button>
     <button class="nav-tab" data-tab="rl"><span class="icon">🤖</span>RL Planner<div class="dot"></div></button>
   </nav>
+
+  <!-- File structure reference -->
+  <div class="fs-block">
+    <div class="fs-title">Project Structure</div>
+    <div class="fs-line folder">AI-Learns-You/</div>
+    <div class="fs-line">├── <span style="color:var(--teal)">data/</span></div>
+    <div class="fs-line">│   └── study_data.csv</div>
+    <div class="fs-line">├── <span style="color:var(--teal)">src/</span></div>
+    <div class="fs-line">│   ├── train.py</div>
+    <div class="fs-line new-file">│   ├── pdf_analyzer.py</div>
+    <div class="fs-line new-file">│   ├── quiz_generator.py</div>
+    <div class="fs-line new-file">│   ├── technique_checker.py</div>
+    <div class="fs-line new-file">│   └── rl_planner.py</div>
+    <div class="fs-line">├── <span style="color:var(--teal)">models/</span></div>
+    <div class="fs-line">│   └── model.pkl</div>
+    <div class="fs-line new-file">├── app.py</div>
+    <div class="fs-line">├── requirements.txt</div>
+    <div class="fs-line">└── README.md</div>
+  </div>
 </aside>
 
 <!-- ── MAIN CONTENT ── -->
@@ -240,44 +273,56 @@ textarea::placeholder{color:var(--muted)}
 
     <div class="predict-layout">
 
-      <!-- LEFT: SLIDERS -->
+      <!-- LEFT: BIG SLIDERS -->
       <div class="inputs-panel">
         <h3>⚙ Session Parameters</h3>
 
-        <div class="bsg">
-          <div class="bsg-row">
+        <div class="big-slider-group">
+          <div class="bsg-header">
             <span class="bsg-label">⏱ Hours Studied</span>
-            <span class="bsg-num" id="vhours">4</span>
+            <span class="bsg-val" id="vhours">4</span>
           </div>
-          <input type="range" id="s-hours" class="slim" min="0" max="10" value="4"/>
+          <input type="range" id="s-hours" class="big-range" min="0" max="10" value="4"/>
+          <div class="bsg-ticks">
+            <span class="bsg-tick">0</span><span class="bsg-tick">2</span><span class="bsg-tick">4</span><span class="bsg-tick">6</span><span class="bsg-tick">8</span><span class="bsg-tick">10</span>
+          </div>
         </div>
 
-        <div class="bsg">
-          <div class="bsg-row">
+        <div class="big-slider-group">
+          <div class="bsg-header">
             <span class="bsg-label">🎯 Focus Level</span>
-            <span class="bsg-num" id="vfocus">7</span>
+            <span class="bsg-val" id="vfocus">7</span>
           </div>
-          <input type="range" id="s-focus" class="slim" min="1" max="10" value="7"/>
+          <input type="range" id="s-focus" class="big-range" min="1" max="10" value="7"/>
+          <div class="bsg-ticks">
+            <span class="bsg-tick">1</span><span class="bsg-tick">3</span><span class="bsg-tick">5</span><span class="bsg-tick">7</span><span class="bsg-tick">9</span><span class="bsg-tick">10</span>
+          </div>
         </div>
 
-        <div class="bsg">
-          <div class="bsg-row">
+        <div class="big-slider-group">
+          <div class="bsg-header">
             <span class="bsg-label">📵 Distractions</span>
-            <span class="bsg-num" id="vdist">2</span>
+            <span class="bsg-val" id="vdist">2</span>
           </div>
-          <input type="range" id="s-dist" class="slim" min="0" max="10" value="2"/>
+          <input type="range" id="s-dist" class="big-range" min="0" max="10" value="2"/>
+          <div class="bsg-ticks">
+            <span class="bsg-tick">0</span><span class="bsg-tick">2</span><span class="bsg-tick">4</span><span class="bsg-tick">6</span><span class="bsg-tick">8</span><span class="bsg-tick">10</span>
+          </div>
         </div>
 
-        <div class="bsg">
-          <div class="bsg-row">
+        <div class="big-slider-group">
+          <div class="bsg-header">
             <span class="bsg-label">😴 Sleep Hours</span>
-            <span class="bsg-num" id="vsleep">7</span>
+            <span class="bsg-val" id="vsleep">7</span>
           </div>
-          <input type="range" id="s-sleep" class="slim" min="0" max="10" value="7"/>
+          <input type="range" id="s-sleep" class="big-range" min="0" max="10" value="7"/>
+          <div class="bsg-ticks">
+            <span class="bsg-tick">0</span><span class="bsg-tick">2</span><span class="bsg-tick">4</span><span class="bsg-tick">6</span><span class="bsg-tick">8</span><span class="bsg-tick">10</span>
+          </div>
         </div>
 
-        <div class="bsg">
-          <div class="bsg-row"><span class="bsg-label">📚 Subject</span></div>
+        <div class="big-slider-group">
+          <div class="bsg-header"><span class="bsg-label">📚 Subject</span></div>
           <div class="subject-grid" id="subject-grid">
             <div class="subj-btn active" data-subj="DSA">DSA</div>
             <div class="subj-btn" data-subj="OOP">OOP</div>
@@ -287,7 +332,7 @@ textarea::placeholder{color:var(--muted)}
           </div>
         </div>
 
-        <button class="btn btn-primary" id="btn-predict" style="margin-top:.6rem">⚡ Predict Productivity</button>
+        <button class="btn btn-primary" id="btn-predict" style="margin-top:.4rem">⚡ Predict Productivity</button>
       </div>
 
       <!-- RIGHT: RESULTS -->
@@ -663,23 +708,16 @@ document.getElementById('btn-predict').onclick=()=>{
 };
 
 // ═══════════════════════════════════════════════════════
-// CLAUDE API — routes through local proxy when served via
-// server.js / server.py.  Falls back to direct call with
-// a helpful error message if opened as file://
+// CLAUDE API
 // ═══════════════════════════════════════════════════════
 async function askClaude(prompt,systemMsg=''){
-  const isServed = window.location.protocol !== 'file:';
-  const url = isServed ? '/api/claude' : 'https://api.anthropic.com/v1/messages';
   const body={model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]};
   if(systemMsg) body.system=systemMsg;
-  try{
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const data=await res.json();
-    if(data.error) return `⚠️ API Error: ${data.error?.message||JSON.stringify(data.error)}\n\nStart the proxy: node server.js  then open http://localhost:3000/demo.html`;
-    return data.content?.map(c=>c.text||'').join('\n')||'No response.';
-  }catch(e){
-    return `⚠️ Cannot reach Claude API.\n\nTo run locally:\n• Node.js:  node server.js\n• Python:   python server.py\nThen open http://localhost:3000/demo.html`;
-  }
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+  });
+  const data=await res.json();
+  return data.content?.map(c=>c.text||'').join('\n')||'No response.';
 }
 
 // ═══════════════════════════════════════════════════════
