@@ -1,12 +1,194 @@
 {
   "states": {
     "DSA|f3|p4|d1": {
-      "Deep Focus Block": 0.2189,
+      "Deep Focus Block": 1.0411,
       "Pomodoro Sprint": 0.0,
       "Problem Solving Drill": 0.0,
       "Concept Revision Loop": 0.0,
       "Teach Back Session": 0.0
+    },
+    "OOP|f3|p2|d1": {
+      "Deep Focus Block": 0.3945,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "OOP|f4|p2|d1": {
+      "Deep Focus Block": 1.1634,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f4|p3|d1": {
+      "Deep Focus Block": 1.2981,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f2|p2|d2": {
+      "Deep Focus Block": 1.1925,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "History|f3|p3|d1": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.6531,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f3|p2|d2": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.7855,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f4|p2|d2": {
+      "Deep Focus Block": 0.1967,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "History|f2|p3|d1": {
+      "Deep Focus Block": 0.1983,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f4|p3|d2": {
+      "Deep Focus Block": 0.4341,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f3|p3|d2": {
+      "Deep Focus Block": 0.7517,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f2|p3|d2": {
+      "Deep Focus Block": 0.3362,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "OOP|f3|p2|d2": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.5225,
+      "Teach Back Session": 0.0
+    },
+    "History|f4|p3|d2": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.4355,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f4|p2|d1": {
+      "Deep Focus Block": 1.0731,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "DSA|f3|p4|d2": {
+      "Deep Focus Block": 0.2767,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "History|f4|p3|d1": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.6925
+    },
+    "OOP|f2|p2|d1": {
+      "Deep Focus Block": 0.3505,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f3|p2|d1": {
+      "Deep Focus Block": 0.7254,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "OOP|f4|p2|d2": {
+      "Deep Focus Block": 0.3951,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f2|p3|d1": {
+      "Deep Focus Block": 0.5477,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "History|f2|p3|d2": {
+      "Deep Focus Block": 0.3498,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.2516,
+      "Teach Back Session": 0.0
+    },
+    "OOP|f2|p2|d2": {
+      "Deep Focus Block": 0.4469,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Physics|f3|p3|d1": {
+      "Deep Focus Block": 0.2308,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "History|f3|p3|d2": {
+      "Deep Focus Block": 0.4194,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f2|p2|d1": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.1633,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 0.0
+    },
+    "Maths|f4|p2|d0": {
+      "Deep Focus Block": 0.0,
+      "Pomodoro Sprint": 0.0,
+      "Problem Solving Drill": 0.0,
+      "Concept Revision Loop": 0.0,
+      "Teach Back Session": 1.0539
     }
   },
-  "last_update": "2026-04-26T16:55:40.902017"
+  "last_update": "2026-04-26T17:32:40.180263"
 }

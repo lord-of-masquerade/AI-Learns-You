@@ -263,14 +263,20 @@ def analyze_pdf_complexity(text, complexity_classifier):
 
 def compute_spider_metrics(full_df, subject=None):
     work = full_df.copy()
+    no_subject_data = False
     if subject:
         subset = work[work["subject"] == subject]
         if len(subset) > 0:
             work = subset
+        else:
+            no_subject_data = True
 
-    if len(work) == 0:
+    if len(work) == 0 or no_subject_data:
+        title = f"{subject or 'Overall'} Study Profile"
+        if no_subject_data:
+            title = f"{subject} Study Profile (No Sessions Yet)"
         return {
-            "title": f"{subject or 'Overall'} Study Profile",
+            "title": title,
             "labels": ["Hours", "Focus", "Sleep", "Productivity", "Distraction Control"],
             "values": [0, 0, 0, 0, 0],
         }
